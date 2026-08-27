@@ -9,12 +9,14 @@ app = FastAPI(title="DocuSense AI", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://docusense-ai-nu.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.include_router(documents.router)
 app.include_router(chat.router)
 app.include_router(summary.router)
