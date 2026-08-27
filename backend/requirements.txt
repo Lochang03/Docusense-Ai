@@ -18,16 +18,9 @@ filelock==3.32.3
 fonttools==4.63.0
 fpdf2==2.8.8
 fsspec==2026.7.0
-google-ai-generativelanguage==0.6.10
-google-api-core==2.33.0
 google-api-python-client==2.198.0
-google-auth==2.56.3
-google-auth-httplib2==0.4.1
 google-generativeai==0.8.3
-googleapis-common-protos==1.75.0
 greenlet==3.5.5
-grpcio==1.83.0
-grpcio-status>=1.75.1
 h11==0.16.0
 httplib2==0.32.0
 httptools==0.8.0
@@ -44,8 +37,6 @@ numpy==1.26.4
 packaging==26.3
 passlib==1.7.4
 pillow==10.4.0
-proto-plus==1.28.2
-protobuf==5.29.6
 psycopg2-binary==2.9.12
 pyasn1==0.6.4
 pyasn1_modules==0.4.2
