@@ -27,17 +27,8 @@ class Settings(BaseSettings):
     CHUNK_SIZE_TOKENS: int = 800       # within the 512-1024 spec range
     CHUNK_OVERLAP_TOKENS: int = 80     # ~10% overlap
 
-    # --- OCR fallback ---
-    # A page is treated as already having a usable text layer if direct
-    # extraction yields at least this many characters. Only pages that fall
-    # below this bar get rasterized and sent to Tesseract.
-    OCR_MIN_CHARS_PER_PAGE: int = 100
-    # Rasterization DPI for OCR. 200 is plenty for Tesseract on clean pages and
-    # uses well under half the memory of 300 DPI, which matters on a 512MB box.
-    OCR_DPI: int = 200
-    # Set False to disable OCR entirely. Pages with no text layer then yield no
-    # text instead of failing the upload.
-    OCR_ENABLED: bool = True
+    # --- OCR fallback threshold ---
+    OCR_FALLBACK_DENSITY_THRESHOLD: float = 0.20
 
     # --- Embeddings ---
     EMBEDDING_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"  # small + fast
