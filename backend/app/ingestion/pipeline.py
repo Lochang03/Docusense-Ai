@@ -87,7 +87,15 @@ def run_ingestion(doc_id: str, file_path: str, mime_type: str, db: Session):
         db.commit()
 
     except Exception as e:
-        document.status = DocumentStatus.FAILED
-        document.error_message = str(e)
-        db.commit()
+        # If the exception came from a DB operation, this session is poisoned and
+        # any further commit on it would also throw — which would leave the
+        # document stuck in a non-terminal status forever, and the frontend
+        # polling /status would spin indefinitely. Roll back first, then re-fetch
+        # the row on the clean session before recording the failure.
+        db.rollback()
+        document = db.query(Document).filter(Document.id == doc_id).first()
+        if document:
+            document.status = DocumentStatus.FAILED
+            document.error_message = str(e)[:2000] or type(e).__name__
+            db.commit()
         raise

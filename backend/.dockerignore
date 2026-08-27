@@ -1,0 +1,24 @@
+# Keep the Docker build context small and reproducible.
+# Critical: venv/ contains ~67k files. It is gitignored so Render never sees it,
+# but a local `docker build` would happily copy the whole thing into the image.
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Secrets must never be baked into an image layer.
+.env
+.env.*
+
+# Local state that must not ship — the container generates its own.
+storage/
+uploads/
+*.db
+*.sqlite3
+
+.git/
+.gitignore
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+README.md
