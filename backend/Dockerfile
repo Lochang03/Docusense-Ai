@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     libmagic1 \
     libgl1 \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
