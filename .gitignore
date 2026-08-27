@@ -1,0 +1,16 @@
+# Backend
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.env
+backend/storage/
+backend/uploads/
+
+# Frontend
+docusense-frontend/node_modules/
+docusense-frontend/.next/
+docusense-frontend/.env.local
+
+# General
+*.pyc
+.DS_Store

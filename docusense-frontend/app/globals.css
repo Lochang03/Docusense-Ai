@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+:root {
+  /* Archival document palette — bookbinding, not SaaS blue */
+  --color-ink: #1b1d23;
+  --color-ink-light: #262932;
+  --color-paper: #faf8f3;
+  --color-paper-dim: #f0ecE1;
+  --color-slate: #4a5259;
+  --color-slate-light: #8a919a;
+  --color-brass: #b08d57;
+  --color-brass-light: #d4b483;
+  --color-verify: #3f7d5c;
+  --color-verify-light: #e8f0ea;
+  --color-rust: #b5533c;
+  --color-rust-light: #f5e8e4;
+  --color-border: #e4ded0;
+}
+
+@theme inline {
+  --color-ink: var(--color-ink);
+  --color-ink-light: var(--color-ink-light);
+  --color-paper: var(--color-paper);
+  --color-paper-dim: var(--color-paper-dim);
+  --color-slate: var(--color-slate);
+  --color-slate-light: var(--color-slate-light);
+  --color-brass: var(--color-brass);
+  --color-brass-light: var(--color-brass-light);
+  --color-verify: var(--color-verify);
+  --color-verify-light: var(--color-verify-light);
+  --color-rust: var(--color-rust);
+  --color-rust-light: var(--color-rust-light);
+  --color-border: var(--color-border);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+.paper-texture {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(27,29,35,0.035) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+.citation-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  border: 1px dashed var(--color-brass);
+  color: var(--color-brass);
+  background: rgba(176, 141, 87, 0.08);
+  transition: background 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+.citation-tab:hover {
+  background: rgba(176, 141, 87, 0.18);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 4px 10px rgba(176, 141, 87, 0.25);
+}
+.citation-tab:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}
+
+.lift-on-hover {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+.lift-on-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(27, 29, 35, 0.18);
+}
+.lift-on-hover:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(27, 29, 35, 0.12);
+}.citation-tab:hover {
+  background: rgba(176, 141, 87, 0.18);
+  transform: translateY(-1px);
+}
+.citation-tab:active {
+  transform: translateY(0);
+}
+
+@keyframes brass-sweep {
+  0% { background-color: rgba(176, 141, 87, 0.55); }
+  100% { background-color: rgba(176, 141, 87, 0); }
+}
+.highlight-sweep {
+  animation: brass-sweep 1.8s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .citation-tab, .highlight-sweep, .lift-on-hover {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+::selection {
+  background: rgba(176, 141, 87, 0.3);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+}
