@@ -44,7 +44,9 @@ def run_ingestion(doc_id: str, file_path: str, mime_type: str, db: Session):
         # --- Step 1: Extraction ---
         document.status = DocumentStatus.EXTRACTING
         db.commit()
+        print(f"[ingest {doc_id}] starting extraction...", flush=True)
         pages = extract(file_path, mime_type)
+        print(f"[ingest {doc_id}] extraction done, {len(pages)} pages", flush=True)        
         document.page_count = len(pages)
         db.commit()
 
@@ -77,11 +79,12 @@ def run_ingestion(doc_id: str, file_path: str, mime_type: str, db: Session):
         # --- Step 4: Embedding ---
         document.status = DocumentStatus.EMBEDDING
         db.commit()
-        add_chunks_to_index(
-            faiss_ids=[c.faiss_id for c in db_chunks],
-            texts=[c.content for c in db_chunks],
+        print(f"[ingest {doc_id}] starting embedding for {len(db_chunks)} chunks...", flush=True)
+        add_chunks_to_index(            
+        faiss_ids=[c.faiss_id for c in db_chunks],
+        texts=[c.content for c in db_chunks],
         )
-
+        print(f"[ingest {doc_id}] embedding done", flush=True)
         # --- Done ---
         document.status = DocumentStatus.READY
         db.commit()
