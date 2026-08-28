@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # --- Embeddings ---
     EMBEDDING_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"  # small + fast
-    EMBEDDING_DIM: int = 384  # matches bge-small
+    EMBEDDING_DIM: int = 768  # matches bge-small
 
     # --- Retrieval ---
     TOP_K_CHUNKS: int = 5

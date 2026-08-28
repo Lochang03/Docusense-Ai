@@ -1,33 +1,25 @@
 ﻿"""
 Embedding generation + FAISS index management.
 
-Uses fastembed (ONNX-based) instead of sentence-transformers/PyTorch — the
-same underlying BAAI/bge-small-en-v1.5 model, but without pulling in the
-full PyTorch runtime, which was pushing memory usage past what Render's
-free tier (512MB) allows and causing OOM crashes during ingestion.
+Uses Gemini's embedding API (genai.embed_content) instead of a locally-run
+model — this offloads the actual computation to Google's servers instead
+of Render's very limited free-tier CPU (0.1 vCPU), which was making even
+plain-text document embedding painfully slow.
 """
 import threading
 
 import faiss
 import numpy as np
-from fastembed import TextEmbedding
+import google.generativeai as genai
 
 from app.config import settings
 
-_model_lock = threading.Lock()
-_model: TextEmbedding | None = None
+genai.configure(api_key=settings.GEMINI_API_KEY)
+
+EMBEDDING_MODEL = "models/gemini-embedding-001"
 
 _index_lock = threading.Lock()
 _index: faiss.Index | None = None
-
-
-def get_model() -> TextEmbedding:
-    global _model
-    if _model is None:
-        with _model_lock:
-            if _model is None:
-                _model = TextEmbedding(model_name=settings.EMBEDDING_MODEL_NAME)
-    return _model
 
 
 def get_index() -> faiss.Index:
@@ -38,6 +30,9 @@ def get_index() -> faiss.Index:
                 index_file = str(settings.FAISS_INDEX_PATH)
                 try:
                     _index = faiss.read_index(index_file)
+                    if _index.d != settings.EMBEDDING_DIM:
+                        base = faiss.IndexFlatIP(settings.EMBEDDING_DIM)
+                        _index = faiss.IndexIDMap(base)
                 except RuntimeError:
                     base = faiss.IndexFlatIP(settings.EMBEDDING_DIM)
                     _index = faiss.IndexIDMap(base)
@@ -48,16 +43,25 @@ def save_index():
     faiss.write_index(get_index(), str(settings.FAISS_INDEX_PATH))
 
 
-def embed_texts(texts: list[str]) -> np.ndarray:
-    """Embed a batch of texts, L2-normalized so inner product == cosine similarity."""
-    model = get_model()
-    vectors = np.array(list(model.embed(texts)), dtype="float32")
+def _embed_batch(texts: list[str], task_type: str) -> np.ndarray:
+    all_vectors = []
+    batch_size = 100
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        result = genai.embed_content(
+            model=EMBEDDING_MODEL,
+            content=batch,
+            task_type=task_type,
+            output_dimensionality=settings.EMBEDDING_DIM,
+        )
+        all_vectors.extend(result["embedding"])
+    vectors = np.array(all_vectors, dtype="float32")
     faiss.normalize_L2(vectors)
     return vectors
 
 
 def add_chunks_to_index(faiss_ids: list[int], texts: list[str]):
-    vectors = embed_texts(texts)
+    vectors = _embed_batch(texts, task_type="RETRIEVAL_DOCUMENT")
     ids = np.array(faiss_ids, dtype="int64")
     index = get_index()
     index.add_with_ids(vectors, ids)
@@ -66,7 +70,7 @@ def add_chunks_to_index(faiss_ids: list[int], texts: list[str]):
 
 def search(query: str, top_k: int = None) -> list[tuple[int, float]]:
     top_k = top_k or settings.TOP_K_CHUNKS
-    query_vec = embed_texts([query])
+    query_vec = _embed_batch([query], task_type="RETRIEVAL_QUERY")
     index = get_index()
     if index.ntotal == 0:
         return []
