@@ -66,7 +66,7 @@ def get_owned_document(
     the document doesn't exist, 403 if it belongs to someone else.
 
     Documents created before auth was added have owner_id=None (legacy,
-    unowned) — we let any logged-in user access those rather than locking
+    unowned) -- we let any logged-in user access those rather than locking
     everyone out of pre-existing test data. Every document created from now
     on will always have a real owner_id.
     """

@@ -9,7 +9,7 @@ import google.generativeai as genai
 
 from app.config import settings
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+genai.configure(api_key=settings.GEMINI_API_KEY, transport="rest")
 _model = genai.GenerativeModel(settings.GEMINI_MODEL)
 
 MODE_INSTRUCTIONS = {

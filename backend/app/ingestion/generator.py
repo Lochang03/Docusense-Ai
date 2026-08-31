@@ -11,7 +11,7 @@ import google.generativeai as genai
 from app.config import settings
 from app.ingestion.retriever import RetrievedChunk
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+genai.configure(api_key=settings.GEMINI_API_KEY, transport="rest")
 _model = genai.GenerativeModel(settings.GEMINI_MODEL)
 
 
@@ -57,7 +57,7 @@ def generate_answer(question: str, chunks: list[RetrievedChunk]) -> dict:
     structured citation data (page numbers + chunk ids actually used).
     """
     prompt = _build_prompt(question, chunks)
-    response = _model.generate_content(prompt)
+    response = _model.generate_content(prompt, request_options={"timeout": 60})
 
     citations = [
         {"page": c.page_num, "chunk_id": c.chunk_id, "score": round(c.score, 3)}

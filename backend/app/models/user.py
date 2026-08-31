@@ -1,5 +1,4 @@
-# app/models/user.py
-import uuid
+﻿import uuid
 from datetime import datetime
 
 from sqlalchemy import String, DateTime
@@ -13,6 +12,7 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

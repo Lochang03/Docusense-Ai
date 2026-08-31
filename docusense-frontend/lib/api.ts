@@ -136,11 +136,11 @@ export const api = {  async getAllChatHistory(): Promise<ChatHistoryEntry[]> {
     clearToken();
   },
 
-  async register(email: string, password: string): Promise<void> {
+  async register(name: string, email: string, password: string): Promise<void> {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ name, email, password }),
     });
     const data = await handle<{ access_token: string }>(res);
     setToken(data.access_token);
@@ -158,7 +158,10 @@ export const api = {  async getAllChatHistory(): Promise<ChatHistoryEntry[]> {
     const data = await handle<{ access_token: string }>(res);
     setToken(data.access_token);
   },
-
+    async getCurrentUser(): Promise<{ id: string; name: string; email: string }> {
+    const res = await authFetch(`/auth/me`);
+    return handle(res);
+  },
   // --- Documents ---
 
   async uploadDocument(file: File): Promise<{ id: string; status: DocumentStatus }> {
@@ -214,17 +217,19 @@ export const api = {  async getAllChatHistory(): Promise<ChatHistoryEntry[]> {
    * browser a local blob URL to open/download — same end result for the
    * user, just routed through an authenticated request first.
    */
-  async downloadSummaryExport(docId: string, format: "markdown" | "clipboard" | "pdf" = "markdown"): Promise<void> {
-    const res = await authFetch(`/documents/${docId}/summary/export?format=${format}`);
-    if (!res.ok) {
-      throw new Error(`Export failed (${res.status})`);
-    }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
-  },
-
+async downloadSummaryExport(docId: string, format: "markdown" | "clipboard" | "pdf" = "markdown"): Promise<void> {
+  const res = await authFetch(
+    `/documents/${docId}/summary/export?format=${format}&_ts=${Date.now()}`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) {
+    throw new Error(`Export failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+},
   async getSummaryClipboardText(docId: string): Promise<string> {
     const res = await authFetch(`/documents/${docId}/summary/export?format=clipboard`);
     return res.text();
@@ -262,4 +267,4 @@ export const api = {  async getAllChatHistory(): Promise<ChatHistoryEntry[]> {
     const blob = await res.blob();
     return URL.createObjectURL(blob);
   },
-};
+};  

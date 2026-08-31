@@ -14,7 +14,7 @@ import google.generativeai as genai
 
 from app.config import settings
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+genai.configure(api_key=settings.GEMINI_API_KEY, transport="rest")
 
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 

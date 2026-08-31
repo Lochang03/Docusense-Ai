@@ -19,7 +19,7 @@ from app.config import settings
 from app.ingestion.retriever import RetrievedChunk, get_ordered_chunks
 from app.models.summary import Summary
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+genai.configure(api_key=settings.GEMINI_API_KEY, transport="rest")
 _model = genai.GenerativeModel(settings.GEMINI_MODEL)
 
 # Rough token safety margin. We approximate 1 token ~= 4 characters, and cap

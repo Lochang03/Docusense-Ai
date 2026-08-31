@@ -6,6 +6,7 @@ FR-04.3: export the summary as Markdown, PDF, or plain text (for clipboard).
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import Response
 from fpdf import FPDF
+from fpdf.errors import FPDFException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -46,39 +47,125 @@ def _to_markdown(summary: Summary) -> str:
     return "\n".join(lines)
 
 
+def _sanitize_for_pdf(text) -> str:
+    text = str(text) if text is not None else ""
+    replacements = {
+        "\u2018": "'", "\u2019": "'",
+        "\u201c": '"', "\u201d": '"',
+        "\u2013": "-", "\u2014": "-",
+        "\u2026": "...",
+        "\u2022": "-",
+        "\u00a0": " ",
+    }
+    for bad, good in replacements.items():
+        text = text.replace(bad, good)
+    text = "".join(c if 32 <= ord(c) < 127 else " " for c in text)
+    return " ".join(text.split())
+
+
+def _estimate_lines(pdf: FPDF, text: str, effective_width: float) -> int:
+    """
+    Rough word-wrap estimate of how many lines `text` will take at the
+    current font/size. auto_page_break is off in this file, so we must
+    add pages ourselves -- without an accurate estimate here, long
+    paragraphs silently overflow past the bottom of the page instead of
+    starting a new one.
+    """
+    if not text:
+        return 1
+    words = text.split(" ")
+    lines = 1
+    current_width = 0.0
+    space_width = pdf.get_string_width(" ")
+    for word in words:
+        word_width = pdf.get_string_width(word)
+        if current_width > 0 and current_width + space_width + word_width > effective_width:
+            lines += 1
+            current_width = word_width
+        else:
+            current_width += (space_width if current_width > 0 else 0) + word_width
+    return lines
+
+
+def _ensure_space(pdf: FPDF, needed: float = 12):
+    """
+    fpdf2's automatic page-break was silently failing to trigger in this
+    setup, causing content past the first page to be written off-canvas
+    and invisible. We check remaining vertical space ourselves before every
+    write and force a new page when there isn't enough room left.
+    """
+    bottom_margin = 15
+    if pdf.get_y() + needed > (pdf.h - bottom_margin):
+        pdf.add_page()
+
+
+def _safe_write(pdf: FPDF, text: str, line_height: float = 6):
+    """
+    multi_cell(0, ...) computes its width from the current x position to
+    the right margin. After the first call, fpdf2 was leaving x parked
+    near the right edge instead of resetting to the left margin, so every
+    write after the first one had ~0 width available and raised
+    "Not enough horizontal space to render a single character" -- silently
+    swallowed by the except block, which is why only item 1 ever appeared.
+    Explicitly resetting x to the left margin before each call fixes this.
+    """
+    if not text:
+        return
+    est_height = _estimate_lines(pdf, text, pdf.epw) * line_height
+    _ensure_space(pdf, est_height)
+    pdf.set_x(pdf.l_margin)
+    try:
+        pdf.multi_cell(0, line_height, text, new_x="LMARGIN", new_y="NEXT")
+    except FPDFException:
+        chunk_size = 40
+        for i in range(0, len(text), chunk_size):
+            chunk = text[i:i + chunk_size]
+            _ensure_space(pdf, _estimate_lines(pdf, chunk, pdf.epw) * line_height)
+            pdf.set_x(pdf.l_margin)
+            try:
+                pdf.multi_cell(0, line_height, chunk, new_x="LMARGIN", new_y="NEXT")
+            except FPDFException:
+                continue
+
+
 def _to_pdf(summary: Summary) -> bytes:
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_auto_page_break(auto=False)  # we're handling page breaks manually now
 
     pdf.set_font("Helvetica", "B", 16)
     pdf.cell(0, 10, "Document Summary", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
     pdf.set_font("Helvetica", "B", 13)
+    _ensure_space(pdf)
     pdf.cell(0, 8, "Executive Summary", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 11)
-    pdf.multi_cell(0, 6, summary.executive_summary or "")
+    _safe_write(pdf, _sanitize_for_pdf(summary.executive_summary or ""))
     pdf.ln(4)
 
     pdf.set_font("Helvetica", "B", 13)
+    _ensure_space(pdf)
     pdf.cell(0, 8, "Key Takeaways", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 11)
     for item in (summary.key_takeaways or []):
-        pdf.multi_cell(0, 6, f"- {item}")
+        _safe_write(pdf, _sanitize_for_pdf(f"- {item}"))
     pdf.ln(4)
 
+
     pdf.set_font("Helvetica", "B", 13)
+    _ensure_space(pdf)
     pdf.cell(0, 8, "Risks & Action Items", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 11)
     if summary.risks_actions:
         for item in summary.risks_actions:
             label = item.get("type", "note").upper()
-            pdf.multi_cell(
-                0, 6, f"[{label}] {item.get('description', '')} (Page {item.get('page_num', '?')})"
+            _safe_write(
+                pdf,
+                _sanitize_for_pdf(f"[{label}] {item.get('description', '')} (Page {item.get('page_num', '?')})"),
             )
     else:
-        pdf.multi_cell(0, 6, "No risks or action items identified.")
+        _safe_write(pdf, "No risks or action items identified.")
 
     return bytes(pdf.output())
 

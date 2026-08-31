@@ -1,19 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BookOpen, Loader2, Eye, EyeOff } from "lucide-react";
+import { BookOpen, Loader2, Eye, EyeOff, MessagesSquare, FileText, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 import { CursorGlow } from "@/components/CursorGlow";
 import { WordField } from "@/components/WordField";
+import { LandingPage } from "@/components/LandingPage";
 
 interface AuthGateProps {
   children: React.ReactNode;
 }
 
+type View = "landing" | "form";
+
 export function AuthGate({ children }: AuthGateProps) {
   const [checked, setChecked] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
+  const [view, setView] = useState<View>("landing");
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,7 +46,7 @@ export function AuthGate({ children }: AuthGateProps) {
       if (mode === "login") {
         await api.login(email, password);
       } else {
-        await api.register(email, password);
+        await api.register(name, email, password);
       }
       setIsAuthed(true);
     } catch (err) {
@@ -58,6 +63,12 @@ export function AuthGate({ children }: AuthGateProps) {
     setConfirmPassword("");
   }
 
+  function openForm(startMode: "login" | "register") {
+    setMode(startMode);
+    setError(null);
+    setView("form");
+  }
+
   if (!checked) {
     return (
       <div className="flex h-screen items-center justify-center bg-paper">
@@ -70,15 +81,26 @@ export function AuthGate({ children }: AuthGateProps) {
     return <>{children}</>;
   }
 
+  // --- Public landing page (shown to anyone who isn't logged in) ---
+  if (view === "landing") {
+    return (
+      <LandingPage onGetStarted={() => openForm("register")} onLogin={() => openForm("login")} />
+    );
+  }
+
+  // --- Login / register form ---
   return (
     <div className="relative flex h-screen items-center justify-center overflow-hidden bg-paper px-6">
       <WordField />
       <CursorGlow />
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-ink text-brass">
+          <button
+            onClick={() => setView("landing")}
+            className="flex h-10 w-10 items-center justify-center rounded-md bg-ink text-brass"
+          >
             <BookOpen className="h-5 w-5" />
-          </div>
+          </button>
           <div>
             <h1 className="font-display text-2xl italic text-ink">DocuSense AI</h1>
             <p className="mt-1 text-sm text-slate">
@@ -88,6 +110,22 @@ export function AuthGate({ children }: AuthGateProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          {mode === "register" && (
+            <div>
+              <label className="mb-1 block text-xs uppercase tracking-wider text-slate-light">
+                Name
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-md border border-border bg-paper px-3 py-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-brass"
+                placeholder="Your name"
+              />
+            </div>
+          )}
+
           <div>
             <label className="mb-1 block text-xs uppercase tracking-wider text-slate-light">
               Email
@@ -125,6 +163,11 @@ export function AuthGate({ children }: AuthGateProps) {
                 {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </button>
             </div>
+            {mode === "register" && (
+              <p className="mt-1 text-xs text-slate-light">
+                Must include an uppercase letter, lowercase letter, number, and special character.
+              </p>
+            )}
           </div>
 
           {mode === "register" && (

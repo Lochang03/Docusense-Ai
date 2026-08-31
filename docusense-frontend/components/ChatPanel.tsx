@@ -22,7 +22,9 @@ export function ChatPanel({ docId, onCitationClick }: ChatPanelProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [showSlowNotice, setShowSlowNotice] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     api
@@ -48,6 +50,12 @@ export function ChatPanel({ docId, onCitationClick }: ChatPanelProps) {
       { role: "ai", content: "", citations: null, pending: true },
     ]);
     setIsSending(true);
+    setShowSlowNotice(false);
+
+    // Only show the "detailed answer" reassurance if the response takes a
+    // while — keeps quick answers feeling instant, and softens longer waits
+    // instead of looking stuck.
+    slowTimerRef.current = setTimeout(() => setShowSlowNotice(true), 6000);
 
     try {
       const result = await api.chat(docId, question);
@@ -67,6 +75,8 @@ export function ChatPanel({ docId, onCitationClick }: ChatPanelProps) {
         return next;
       });
     } finally {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      setShowSlowNotice(false);
       setIsSending(false);
     }
   }
@@ -107,10 +117,18 @@ export function ChatPanel({ docId, onCitationClick }: ChatPanelProps) {
             </div>
             <div className="flex-1 space-y-2">
               {m.pending ? (
-                <div className="flex gap-1 pt-2">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-light [animation-delay:-0.3s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-light [animation-delay:-0.15s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-light" />
+                <div className="space-y-2 pt-1">
+                  <div className="flex gap-1 pt-1">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-light [animation-delay:-0.3s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-light [animation-delay:-0.15s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-light" />
+                  </div>
+                  {showSlowNotice && (
+                    <p className="text-xs text-slate-light">
+                      Generating a detailed, cited answer — this can take a bit longer for
+                      broad questions.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <>

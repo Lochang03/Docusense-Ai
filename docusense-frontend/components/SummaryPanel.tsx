@@ -70,9 +70,8 @@ export function SummaryPanel({ docId }: SummaryPanelProps) {
     setIsExporting(format);
     try {
       await api.downloadSummaryExport(docId, format);
-    } catch {
-      // silent fail is fine here too — the export buttons don't have
-      // their own error slot, and this is a non-critical secondary action
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Export failed — unknown error");
     } finally {
       setIsExporting(null);
     }

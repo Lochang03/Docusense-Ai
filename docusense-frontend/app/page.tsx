@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { BookOpen, MessagesSquare, FileText, History } from "lucide-react";
+import { BookOpen, MessagesSquare, FileText, History, ChevronDown, LogOut } from "lucide-react";
 import { api, type DocumentStatusResponse, type Citation } from "@/lib/api";
 import { UploadDropzone } from "@/components/UploadDropzone";
 import { StatusPill } from "@/components/StatusPill";
@@ -28,6 +28,8 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<RightPanelTab>("chat");
   const [showHistory, setShowHistory] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const pollStatus = useCallback((docId: string) => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -46,6 +48,9 @@ export default function Home() {
 
   useEffect(() => () => {
     if (pollRef.current) clearInterval(pollRef.current);
+  }, []);
+    useEffect(() => {
+    api.getCurrentUser().then(setUser).catch(() => {});
   }, []);
 
   // On first load, check whether the URL already points at a document
@@ -137,15 +142,36 @@ export default function Home() {
             >
               <History className="h-4 w-4" />
             </button>
-            <button
-              onClick={() => {
-                api.logout();
-                window.location.reload();
-              }}
-              className="text-sm text-slate-light hover:text-ink"
-            >
-              Log out
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu((v) => !v)}
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-ink hover:bg-black/5"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brass/20 text-xs font-medium text-ink">
+                  {(user?.name || "?").charAt(0).toUpperCase()}
+                </div>
+                <span className="max-w-[120px] truncate">{user?.name || "Account"}</span>
+                <ChevronDown className="h-3.5 w-3.5 text-slate-light" />
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 top-full mt-1 w-48 rounded-md border border-border bg-paper py-1 shadow-lg">
+                  <div className="border-b border-border px-3 py-2">
+                    <p className="truncate text-sm font-medium text-ink">{user?.name}</p>
+                    <p className="truncate text-xs text-slate-light">{user?.email}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      api.logout();
+                      window.location.reload();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rust hover:bg-black/5"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

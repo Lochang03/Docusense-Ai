@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     MIN_SIMILARITY_SCORE: float = 0.35  # below this, trigger "not in document" fallback
 
     # --- LLM (Gemini) ---
-    GEMINI_MODEL: str = "gemini-flash-latest"
+    GEMINI_MODEL: str = "gemini-3.6-flash"
     GEMINI_API_KEY: str = ""  # set via .env, never hardcode
 
     # --- Auth ---

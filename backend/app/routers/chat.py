@@ -66,8 +66,10 @@ def chat_with_document(
     db.commit()
 
     # --- Retrieve relevant chunks ---
+    import time
+    t0 = time.time()
     chunks = retrieve(request.question, doc_id=document.id, db=db)
-
+    print(f"[chat] retrieval took {time.time() - t0:.2f}s", flush=True)
     # --- FR-03.3: Hallucination mitigation ---
     if not is_grounded_enough(chunks):
         ai_msg = ChatMessage(
@@ -81,7 +83,9 @@ def chat_with_document(
         return {"answer": NOT_IN_DOCUMENT_MESSAGE, "citations": []}
 
     # --- Generate a grounded, cited answer ---
+    t1 = time.time()
     result = generate_answer(request.question, chunks)
+    print(f"[chat] generation took {time.time() - t1:.2f}s", flush=True)
 
     # --- Save the AI's answer ---
     ai_msg = ChatMessage(
